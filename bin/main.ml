@@ -1,28 +1,36 @@
 open Base
 open Stdio
 
-let day1 () =
-  let check_at s pos =
-    let num_strs = ["one"; "two"; "three"; "four"; "five"; "six"; "seven"; "eight"; "nine"] in
-    let s_res = List.findi num_strs ~f:(fun _ num_str -> String.is_substring_at s ~pos ~substring:num_str) in
-    let s_num = Option.map s_res ~f:(fun res -> 1 + (fst res)) in
-    let c_num = Char.get_digit @@ String.get s pos in
-    Option.first_some s_num c_num in
+type maxes = {
+  mutable max_blue : int;
+  mutable max_green : int;
+  mutable max_red : int;
+}
 
-  let rec get_nums' s nums pos =
-    let nums = match check_at s pos with
-      | Some x -> x :: nums
-      | None -> nums in
-    if pos = 0 then nums else get_nums' s nums (pos - 1) in
-  let get_nums s = get_nums' s [] (String.length s - 1) in
+let day2 () =
+  let item_valid s ms =
+    let (num_str, color) = String.lsplit2_exn ~on:' ' @@ String.strip s in
+    let num = Int.of_string num_str in
+    match color with
+    | "red" -> ms.max_red <- max ms.max_red num
+    | "green" -> ms.max_green <- max ms.max_green num
+    | "blue" -> ms.max_blue <- max ms.max_blue num
+    | _ -> failwith "bad color" in
+  
+  let subset_valid s ms =
+    let items = String.split ~on:',' s in
+    List.iter ~f:(fun s -> item_valid s ms) items in
 
-  let value line =
-    let nums = get_nums line in
-    let x = List.nth_exn nums 0 in
-    let y = List.last_exn nums in
-    x * 10 + y in
-
+  let process_game line =
+    let ms = {max_red = 0; max_green = 0; max_blue = 0} in
+    let (_game_id_str, rest) = String.chop_prefix_exn ~prefix:"Game " line |> String.lsplit2_exn ~on:':' in
+    (* let game_id =  Int.of_string game_id_str in *)
+    let subsets = String.strip rest |> String.split ~on:';' |> List.map ~f:String.strip in
+    let _ = List.iter ~f:(fun s -> subset_valid s ms) subsets in
+    ms.max_red * ms.max_green * ms.max_blue in
+    
   let lines = In_channel.read_lines "input.txt" in
-  List.sum (module Int) ~f:value lines 
+  (* I don't really get why List.sum wants to map first *)
+  List.sum (module Int) ~f:process_game lines
 
-let () = day1 () |> Int.to_string |> print_endline
+let () = day2 () |> Int.to_string |> print_endline
